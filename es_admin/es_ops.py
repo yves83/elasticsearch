@@ -142,13 +142,17 @@ def main():
             desc = templates[name]["description"]
             short = (desc[:97] + "...") if len(desc) > 100 else desc
             print(f"{i:3}. {name} - {short}")
-        
+
+        """"
         try:
             choice = int(input("\nSelect action number: ")) - 1
             action_name = list(sorted(templates.keys()))[choice]
         except:
             print("Invalid selection!")
             sys.exit(1)
+        """
+        print("\n")
+        sys.exit(1)
     else:
         action_name = args.action
         if action_name not in templates:
