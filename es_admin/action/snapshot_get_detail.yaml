@@ -1,0 +1,11 @@
+name: snapshot_get_detail
+description: Retrieve detailed information about a specific snapshot.
+
+parameters:
+  REPO:
+    description: Repository Name
+  SNAPSHOT_NAME:
+    description: The snapshot name
+
+query: |
+  GET _snapshot/###REPO###/###SNAPSHOT_NAME###/

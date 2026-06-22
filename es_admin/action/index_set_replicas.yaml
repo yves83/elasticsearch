@@ -1,0 +1,17 @@
+name: index_set_replicas
+description: Update the number of replicas for one or multiple indexes.
+
+parameters:
+  INDEX:
+    description: The index name.
+  COUNT:
+    description: Set the replicas count.
+    default: 0
+
+query: |
+  PUT /###INDEX###/_settings
+  {
+    "index": {
+      "number_of_replicas": ###COUNT###
+    }
+  }

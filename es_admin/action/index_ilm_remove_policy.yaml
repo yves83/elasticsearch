@@ -1,0 +1,9 @@
+name: index_ilm_remove_policy
+description: Remove the assigned ILM policy from a specific index.
+
+parameters:
+  INDEX:
+    description: The index name.
+
+query: |
+  POST /###INDEX###/_ilm/remove

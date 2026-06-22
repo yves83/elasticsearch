@@ -1,0 +1,8 @@
+name: index_ilm_retry
+description: Retry the ILM action.
+
+parameters: 
+INDEX: Index name
+
+query: |
+  POST ###INDEX###/_ilm/retry

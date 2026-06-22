@@ -1,0 +1,28 @@
+name: index_move
+description: Move an index to target node.
+parameters: 
+  INDEX:
+    description: Index name to move.
+  SRC_NODE:
+    description: The Source node name.
+  DST_NODE:
+    description: The Destination node name.
+  SHARD:
+    description: The shard number. Default shard is 0.
+    default: 0
+    
+
+query: |
+  POST _cluster/reroute
+  {
+    "commands": [
+      {
+        "move": {
+          "index": "###INDEX###",
+          "shard": ###SHARD###,
+          "from_node": "###SRC_NODE###",
+          "to_node": "###DST_NODE###"
+        }
+      }
+    ]
+  }

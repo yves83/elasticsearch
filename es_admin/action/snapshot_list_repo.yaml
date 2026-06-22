@@ -1,0 +1,9 @@
+name: snapshot_list_repo
+description: List all snapshots within a specific snapshot repository.
+
+parameters:
+  REPO:
+    description: Repository Name
+
+query: |
+  GET /_cat/snapshots/###REPO###

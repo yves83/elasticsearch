@@ -1,0 +1,11 @@
+name: snapshot_delete
+description: Delete a specific snapshot from a repository.
+
+parameters:
+  REPO:
+    description: Repository Name
+  SNAPSHOT_NAME:
+    description: The snapshot name to be delete
+
+query: |
+  DELETE _snapshot/###REPO###/###SNAPSHOT_NAME###

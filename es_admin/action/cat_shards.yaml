@@ -1,0 +1,9 @@
+name: cat_shards
+description: Retrieve and display the shard allocation status.
+parameters: 
+  FIELDS:
+    description: Configure the display columns.
+    default: "index,prirep,state,store,ip,node"
+
+query: |
+  GET _cat/shards/*,-.*?v&h=###FIELDS###

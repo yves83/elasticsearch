@@ -1,0 +1,7 @@
+name: ilm_list_error
+description: List all indexes that have errors in their Index Lifecycle Management (ILM) policy execution.
+
+parameters: {}
+
+query: |
+  GET _all/_ilm/explain?only_errors=true

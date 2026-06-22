@@ -1,0 +1,6 @@
+name: cluster_health
+description: Retrieve and display the overall health status of the Elasticsearch cluster (Green, Yellow, or Red).
+parameters: {}
+
+query: |
+  GET _cluster/health

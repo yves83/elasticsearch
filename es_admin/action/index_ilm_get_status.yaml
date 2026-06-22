@@ -1,0 +1,12 @@
+name: index_ilm_get_status
+description: Show the current ILM status and phase information for one or multiple indexes.
+
+parameters:
+  INDEX:
+    description: Index name or Index name prefix. e.g. myIndex
+    default: _all
+
+
+query: |
+  GET ###INDEX###/_ilm/explain
+

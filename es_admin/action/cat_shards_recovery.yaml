@@ -1,0 +1,13 @@
+name: cat_shards_recovery
+description: Retrieve and display the shard recovery status.
+parameters:
+  INDEX:
+    description: This is the prefix appended to the index.
+    default: ""
+  FIELDS:
+    description: Configure the display columns.
+    default: "*"
+  
+
+query: |
+  GET _cat/recovery/###INDEX###?v&h=###FIELDS###

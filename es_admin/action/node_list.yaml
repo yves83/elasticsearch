@@ -1,0 +1,6 @@
+name: node_list
+description: List all nodes in the Elasticsearch cluster along with their roles and basic status.
+parameters: {}
+
+query: |
+  GET _cat/nodes?v

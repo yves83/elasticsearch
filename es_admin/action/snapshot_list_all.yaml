@@ -1,0 +1,8 @@
+name: snapshot_list_all
+description: List all snapshots across all repositories in the cluster.
+
+parameters: {}
+
+query: |
+  GET /_cat/snapshots/_all?v&h=id,repository,status,start_time,duration,indices,total_shards
+

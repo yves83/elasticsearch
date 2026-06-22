@@ -1,0 +1,19 @@
+name: index_ilm_set_policy
+description: Attach an ILM policy to a specific index.
+
+parameters:
+  INDEX:
+    description: The index name.
+  ILMPOLICY:
+    description: The ILM Policy Name.
+
+query: |
+  PUT /###INDEX###/_settings
+  {
+    "index": {
+      "lifecycle": {
+        "name": ###ILMPOLICY###
+      }
+    }
+  }
+

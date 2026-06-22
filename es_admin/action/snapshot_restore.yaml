@@ -1,0 +1,21 @@
+name: snapshot_restore
+description: Restore data from a specific snapshot to the cluster.
+
+parameters:
+  REPO:
+    description: Repository Name
+  SNAPSHOT_NAME:
+    description: The original snapshot name to be restore
+  INDEXES:
+    description: The indexes list to be restore, e.g. myindex,anotherindex
+  PREFIX:
+    description: This is the prefix appended to the index.
+    default: restore-
+
+query: |
+  POST _snapshot/###REPO###/###SNAPSHOT_NAME###/_restore
+  {
+    "indices": "###INDEXES###",
+    "rename_pattern": "(.+)",
+    "rename_replacement": "###PREFIX###$1"
+  }

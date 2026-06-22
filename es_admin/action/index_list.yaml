@@ -1,0 +1,7 @@
+name: index_list_all
+description: List all indexes in the cluster with basic information (name, status, health, size, etc.).
+
+parameters: {}
+
+query: |
+  GET _cat/indices?v&h=health,status,index,pri,rep,docs.count,store.size,pri.store.size
