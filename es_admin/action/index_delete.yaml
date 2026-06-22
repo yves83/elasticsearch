@@ -1,0 +1,9 @@
+name: index_delete
+description: Delete the selected index.
+
+parameters:
+  INDEX:
+    description: Index name to move.
+
+query: |
+  DELETE /###INDEX###
