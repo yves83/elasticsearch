@@ -33,7 +33,7 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
-# Initialize client with compatibility header for ES 8.x
+# Force compatibility with ES 8.x
 es = Elasticsearch(
     ES_URL,
     basic_auth=(ES_USER, ES_PASSWORD) if ES_USER and ES_PASSWORD else None,
@@ -42,33 +42,35 @@ es = Elasticsearch(
     retry_on_timeout=True,
     verify_certs=False,
     ssl_show_warn=False,
-    # Force compatibility with Elasticsearch 8
     headers={"Accept": "application/vnd.elasticsearch+json;compatible-with=8"}
 )
 
 
 def index_exists(index_name: str) -> bool:
-    """Safe index existence check compatible with older ES versions"""
+    """Reliable index check for version mismatch scenarios"""
     try:
-        # Use a simple GET request
-        es.indices.get(index=index_name, ignore_unavailable=True)
+        # Try a lightweight search - this works even when other methods fail
+        resp = es.search(
+            index=index_name,
+            body={"size": 0, "query": {"match_all": {}}},
+            request_timeout=10
+        )
         return True
     except NotFoundError:
         return False
     except BadRequestError as e:
-        if "version" in str(e).lower() or "media_type" in str(e).lower():
-            print(f"   → Version compatibility issue detected. Trying alternative check...")
-            try:
-                resp = es.indices.exists(index=index_name)
-                return bool(resp)
-            except:
-                return False
+        error_msg = str(e).lower()
+        if "index_not_found" in error_msg or "no such index" in error_msg:
+            return False
+        print(f"   → BadRequest checking index {index_name}: {e}")
         return False
-    except Exception:
-        # Final fallback
+    except Exception as e:
+        print(f"   → Error checking index {index_name}: {e}")
+        # Last resort: try to open PIT (will fail naturally if index doesn't exist)
         try:
-            resp = es.cat.indices(index=index_name, format="json")
-            return len(resp) > 0
+            pit = es.open_point_in_time(index=index_name, keep_alive="1m")
+            es.close_point_in_time(id=pit["id"])
+            return True
         except:
             return False
 
@@ -115,8 +117,9 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
         
         try:
             if not index_exists(index_name):
-                print(f"   → Index not found: {index_name} | Skipping...")
-                break
+                print(f"   → Index not found: {index_name} | Skipping this date...")
+                current_dt += timedelta(days=1)
+                continue
 
             pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
             pit_id = pit["id"]
@@ -180,9 +183,11 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
 
         except NotFoundError:
             print(f"   → Index not found: {index_name} | Skipping...\n")
-            break
+            current_dt += timedelta(days=1)
+            continue
         except Exception as e:
             print(f"   → Error processing {index_name}: {e} | Skipping...\n")
+            current_dt += timedelta(days=1)
             continue
 
         current_dt += timedelta(days=1)
