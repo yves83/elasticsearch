@@ -26,11 +26,11 @@ if not ES_URL:
 
 ES_URL = ES_URL.rstrip('/')
 
+# Simple headers for Elasticsearch 8
 session = requests.Session()
 session.verify = False
 session.headers.update({
-    "Content-Type": "application/json",
-    "Accept": "application/vnd.elasticsearch+json;compatible-with=8"
+    "Content-Type": "application/json"
 })
 
 if ES_USER and ES_PASSWORD:
@@ -91,13 +91,13 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                 current_dt += timedelta(days=1)
                 continue
 
-            # === Open Point in Time (Correct endpoint) ===
+            # Open Point in Time
             pit_resp = session.post(
                 f"{ES_URL}/{index_name}/_pit?keep_alive={KEEP_ALIVE}"
             )
             pit_resp.raise_for_status()
             pit_id = pit_resp.json()["id"]
-            print(f"   → PIT opened successfully")
+            print(f"   → PIT opened")
 
             search_after = None
             f = None
@@ -161,7 +161,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
             print(f"   ✓ {date_str} completed.\n")
 
         except requests.exceptions.HTTPError as e:
-            print(f"   → HTTP Error: {e.response.status_code} - {e.response.text}")
+            print(f"   → HTTP Error {e.response.status_code}: {e.response.text[:300]}")
         except Exception as e:
             print(f"   → Error processing {index_name}: {e}")
         finally:
