@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.9
 import os
 import sys
 import json
@@ -33,6 +33,7 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
+# Initialize client with compatibility header for ES 8.x
 es = Elasticsearch(
     ES_URL,
     basic_auth=(ES_USER, ES_PASSWORD) if ES_USER and ES_PASSWORD else None,
@@ -40,28 +41,36 @@ es = Elasticsearch(
     max_retries=3,
     retry_on_timeout=True,
     verify_certs=False,
-    ssl_show_warn=False
+    ssl_show_warn=False,
+    # Force compatibility with Elasticsearch 8
+    headers={"Accept": "application/vnd.elasticsearch+json;compatible-with=8"}
 )
 
 
 def index_exists(index_name: str) -> bool:
-    """Safe way to check if index exists (compatible with ES 8.x)"""
+    """Safe index existence check compatible with older ES versions"""
     try:
-        es.indices.get(index=index_name)
+        # Use a simple GET request
+        es.indices.get(index=index_name, ignore_unavailable=True)
         return True
     except NotFoundError:
         return False
     except BadRequestError as e:
-        print(f"   → BadRequest checking index {index_name}: {e}")
-        # Try fallback
+        if "version" in str(e).lower() or "media_type" in str(e).lower():
+            print(f"   → Version compatibility issue detected. Trying alternative check...")
+            try:
+                resp = es.indices.exists(index=index_name)
+                return bool(resp)
+            except:
+                return False
+        return False
+    except Exception:
+        # Final fallback
         try:
-            resp = es.indices.exists(index=index_name)
-            return resp
+            resp = es.cat.indices(index=index_name, format="json")
+            return len(resp) > 0
         except:
             return False
-    except Exception as e:
-        print(f"   → Error checking index {index_name}: {e}")
-        return False
 
 
 def ensure_folder(alias: str):
