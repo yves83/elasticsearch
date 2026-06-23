@@ -12,6 +12,7 @@ OUTPUT_BASE = "./darktrace_exports"
 BATCH_SIZE = 2000
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 TIMESTAMP_FIELD = "@timestamp"
+KEEP_ALIVE = "15m"
 # ================================================================
 
 # Load from Environment Variables
@@ -23,7 +24,6 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
-# Remove trailing slash if present
 ES_URL = ES_URL.rstrip('/')
 
 session = requests.Session()
@@ -38,12 +38,9 @@ if ES_USER and ES_PASSWORD:
 
 
 def index_exists(index_name: str) -> bool:
-    """Check if index exists using requests"""
     try:
         resp = session.get(f"{ES_URL}/_cat/indices/{index_name}?format=json")
-        if resp.status_code == 200:
-            return len(resp.json()) > 0
-        return False
+        return resp.status_code == 200 and len(resp.json()) > 0
     except:
         return False
 
@@ -94,13 +91,13 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                 current_dt += timedelta(days=1)
                 continue
 
-            # Open Point in Time
+            # === Open Point in Time (Correct endpoint) ===
             pit_resp = session.post(
-                f"{ES_URL}/_pit",
-                json={"keep_alive": "15m", "index": index_name}
+                f"{ES_URL}/{index_name}/_pit?keep_alive={KEEP_ALIVE}"
             )
             pit_resp.raise_for_status()
             pit_id = pit_resp.json()["id"]
+            print(f"   → PIT opened successfully")
 
             search_after = None
             f = None
@@ -118,7 +115,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                             "filter": [{"range": {TIMESTAMP_FIELD: {"gte": date_str, "lt": next_date}}}]
                         }
                     },
-                    "pit": {"id": pit_id, "keep_alive": "15m"},
+                    "pit": {"id": pit_id, "keep_alive": KEEP_ALIVE},
                     "sort": ["_doc"]
                 }
                 if search_after:
@@ -153,7 +150,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                     f.write("\n")
                     total_docs += 1
 
-                search_after = hits[-1].get("sort")
+                search_after = hits[-1].get("sort") if hits else None
 
             # Close PIT
             try:
@@ -163,6 +160,8 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
 
             print(f"   ✓ {date_str} completed.\n")
 
+        except requests.exceptions.HTTPError as e:
+            print(f"   → HTTP Error: {e.response.status_code} - {e.response.text}")
         except Exception as e:
             print(f"   → Error processing {index_name}: {e}")
         finally:
@@ -175,7 +174,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Elasticsearch Export Tool (using requests)")
+    parser = argparse.ArgumentParser(description="Elasticsearch Export Tool (requests)")
     parser.add_argument("--index", required=True, help="Full index name or pattern")
     parser.add_argument("--alias", required=True, help="Output folder alias")
     parser.add_argument("--start", help="Start date (YYYY-MM-DD)")
