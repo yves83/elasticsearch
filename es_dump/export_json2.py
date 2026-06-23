@@ -1,4 +1,4 @@
-#!/usr/bin/python3.9
+#!/usr/bin/python
 import os
 import sys
 import json
@@ -33,7 +33,7 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
-# Force compatibility with ES 8.x
+# Initialize client with compatibility for ES 8.x
 es = Elasticsearch(
     ES_URL,
     basic_auth=(ES_USER, ES_PASSWORD) if ES_USER and ES_PASSWORD else None,
@@ -47,14 +47,14 @@ es = Elasticsearch(
 
 
 def index_exists(index_name: str) -> bool:
-    """Reliable index check for version mismatch scenarios"""
+    """Reliable index check"""
     try:
-        # Try a lightweight search - this works even when other methods fail
-        resp = es.search(
-            index=index_name,
-            body={"size": 0, "query": {"match_all": {}}},
-            request_timeout=10
-        )
+        # Use options() for transport settings to avoid deprecation
+        with es.options(request_timeout=10):
+            resp = es.search(
+                index=index_name,
+                body={"size": 0, "query": {"match_all": {}}}
+            )
         return True
     except NotFoundError:
         return False
@@ -66,10 +66,11 @@ def index_exists(index_name: str) -> bool:
         return False
     except Exception as e:
         print(f"   → Error checking index {index_name}: {e}")
-        # Last resort: try to open PIT (will fail naturally if index doesn't exist)
+        # Fallback: Try to open PIT
         try:
-            pit = es.open_point_in_time(index=index_name, keep_alive="1m")
-            es.close_point_in_time(id=pit["id"])
+            with es.options(request_timeout=10):
+                pit = es.open_point_in_time(index=index_name, keep_alive="1m")
+                es.close_point_in_time(id=pit["id"])
             return True
         except:
             return False
@@ -121,6 +122,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                 current_dt += timedelta(days=1)
                 continue
 
+            # Open PIT
             pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
             pit_id = pit["id"]
             search_after = None
