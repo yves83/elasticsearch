@@ -6,4 +6,4 @@ parameters:
     description: Repository Name
 
 query: |
-  GET /_cat/snapshots/###REPO###
+  GET /_cat/snapshots/###REPO###?v
