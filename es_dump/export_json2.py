@@ -1,4 +1,4 @@
-#!/usr/bin/python3.9
+#!/usr/bin/python
 import os
 import sys
 import json
@@ -33,41 +33,32 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
-# Elasticsearch 8.11.3 Compatible Client
+# Optimized Client for Elasticsearch 8.11.3
 es = Elasticsearch(
     ES_URL,
     basic_auth=(ES_USER, ES_PASSWORD) if ES_USER and ES_PASSWORD else None,
     verify_certs=False,
     ssl_show_warn=False,
-    headers={"Accept": "application/vnd.elasticsearch+json;compatible-with=8"}
+    headers={"Accept": "application/vnd.elasticsearch+json;compatible-with=8"},
+    # Connection settings to prevent pool closed errors
+    max_retries=5,
+    retry_on_timeout=True,
+    timeout=60,
+    # Keep connections alive
+    http_compress=True
 )
 
 
 def index_exists(index_name: str) -> bool:
-    """Reliable index check optimized for ES 8.11.3"""
+    """Reliable index check for ES 8.11.3"""
     try:
-        # Best method for ES 8.x - using cat indices
-        with es.options(request_timeout=10):
-            resp = es.cat.indices(index=index_name, format="json")
-            return len(resp) > 0
-    except NotFoundError:
-        return False
-    except BadRequestError as e:
-        error_msg = str(e).lower()
-        if "index_not_found" in error_msg or "no such index" in error_msg:
-            return False
-        print(f"   → BadRequest checking index {index_name}: {e}")
+        resp = es.cat.indices(index=index_name, format="json", request_timeout=10)
+        return len(resp) > 0
+    except (NotFoundError, BadRequestError):
         return False
     except Exception as e:
         print(f"   → Error checking index {index_name}: {e}")
-        # Fallback method
-        try:
-            with es.options(request_timeout=10):
-                pit = es.open_point_in_time(index=index_name, keep_alive="1m")
-                es.close_point_in_time(id=pit["id"])
-            return True
-        except:
-            return False
+        return False
 
 
 def ensure_folder(alias: str):
@@ -77,7 +68,6 @@ def ensure_folder(alias: str):
 
 
 def get_date_from_timestamp(doc):
-    """Extract YYYYMMDD from @timestamp"""
     try:
         ts = doc.get(TIMESTAMP_FIELD)
         if isinstance(ts, str):
@@ -118,8 +108,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                 continue
 
             # Open Point in Time
-            with es.options(request_timeout=60):
-                pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
+            pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
             pit_id = pit["id"]
             search_after = None
             f = None
@@ -144,9 +133,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                     if search_after:
                         body["search_after"] = search_after
 
-                    with es.options(request_timeout=60):
-                        resp = es.search(**body)
-                    
+                    resp = es.search(**body)
                     hits = resp["hits"]["hits"]
                     if not hits:
                         break
@@ -177,21 +164,19 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
             finally:
                 if f:
                     f.close()
-                with es.options(request_timeout=10):
+                try:
                     es.close_point_in_time(id=pit_id)
+                except:
+                    pass  # Ignore close errors
 
             print(f"   ✓ {date_str} completed.\n")
 
         except NotFoundError:
             print(f"   → Index not found: {index_name} | Skipping...\n")
-            current_dt += timedelta(days=1)
-            continue
         except Exception as e:
             print(f"   → Error processing {index_name}: {e} | Skipping...\n")
+        finally:
             current_dt += timedelta(days=1)
-            continue
-
-        current_dt += timedelta(days=1)
 
     print(f"Export completed! Total documents: {total_docs:,}")
 
