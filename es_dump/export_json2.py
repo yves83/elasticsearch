@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.9
 import os
 import sys
 import json
@@ -33,13 +33,10 @@ if not ES_URL:
     print("Error: ES_URL environment variable is not set.")
     sys.exit(1)
 
-# Initialize client with compatibility for ES 8.x
+# Elasticsearch 8.11.3 Compatible Client
 es = Elasticsearch(
     ES_URL,
     basic_auth=(ES_USER, ES_PASSWORD) if ES_USER and ES_PASSWORD else None,
-    request_timeout=60,
-    max_retries=3,
-    retry_on_timeout=True,
     verify_certs=False,
     ssl_show_warn=False,
     headers={"Accept": "application/vnd.elasticsearch+json;compatible-with=8"}
@@ -47,15 +44,12 @@ es = Elasticsearch(
 
 
 def index_exists(index_name: str) -> bool:
-    """Reliable index check"""
+    """Reliable index check optimized for ES 8.11.3"""
     try:
-        # Use options() for transport settings to avoid deprecation
+        # Best method for ES 8.x - using cat indices
         with es.options(request_timeout=10):
-            resp = es.search(
-                index=index_name,
-                body={"size": 0, "query": {"match_all": {}}}
-            )
-        return True
+            resp = es.cat.indices(index=index_name, format="json")
+            return len(resp) > 0
     except NotFoundError:
         return False
     except BadRequestError as e:
@@ -66,7 +60,7 @@ def index_exists(index_name: str) -> bool:
         return False
     except Exception as e:
         print(f"   → Error checking index {index_name}: {e}")
-        # Fallback: Try to open PIT
+        # Fallback method
         try:
             with es.options(request_timeout=10):
                 pit = es.open_point_in_time(index=index_name, keep_alive="1m")
@@ -83,6 +77,7 @@ def ensure_folder(alias: str):
 
 
 def get_date_from_timestamp(doc):
+    """Extract YYYYMMDD from @timestamp"""
     try:
         ts = doc.get(TIMESTAMP_FIELD)
         if isinstance(ts, str):
@@ -122,8 +117,9 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                 current_dt += timedelta(days=1)
                 continue
 
-            # Open PIT
-            pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
+            # Open Point in Time
+            with es.options(request_timeout=60):
+                pit = es.open_point_in_time(index=index_name, keep_alive=KEEP_ALIVE)
             pit_id = pit["id"]
             search_after = None
             f = None
@@ -148,7 +144,9 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
                     if search_after:
                         body["search_after"] = search_after
 
-                    resp = es.search(**body)
+                    with es.options(request_timeout=60):
+                        resp = es.search(**body)
+                    
                     hits = resp["hits"]["hits"]
                     if not hits:
                         break
@@ -179,7 +177,8 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
             finally:
                 if f:
                     f.close()
-                es.close_point_in_time(id=pit_id)
+                with es.options(request_timeout=10):
+                    es.close_point_in_time(id=pit_id)
 
             print(f"   ✓ {date_str} completed.\n")
 
@@ -199,7 +198,7 @@ def export_index_data(index_name: str, alias: str, start_date: str = None, end_d
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Elasticsearch Export Tool")
+    parser = argparse.ArgumentParser(description="Elasticsearch 8.11.3 Export Tool")
     parser.add_argument("--index", required=True, help="Full index name or pattern to query in Elasticsearch")
     parser.add_argument("--alias", required=True, help="Short alias name used as output folder name")
     parser.add_argument("--start", help="Start date (YYYY-MM-DD)")
