@@ -7,8 +7,22 @@ import os
 import sys
 import json
 import argparse
+
+# ====================== LIBRARIES BUNDLING ======================
+LIBS_DIR = Path("./libs")
+if LIBS_DIR.exists():
+    sys.path.insert(0, str(LIBS_DIR.absolute()))
+
+import warnings
+from elasticsearch import Elasticsearch
+from elastic_transport import SecurityWarning
+
+warnings.filterwarnings("ignore", category=SecurityWarning)
+
 import requests
 from requests.auth import HTTPBasicAuth
+requests.packages.urllib3.disable_warnings()
+
 
 def main():
     # Parse arguments
