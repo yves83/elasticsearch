@@ -5,6 +5,8 @@ Validate the Snapshot upload to Azure Blob Storage. Ensure the Snapshots are upl
 Update this parameter before run the script:
   SNAPSHOT_DIR="/nfshare/frozen_snap"  
 
+
+
 **download-archives-from-azure.sh**
 Usage: ./download-archives-from-azure.sh <command> [options]
 
