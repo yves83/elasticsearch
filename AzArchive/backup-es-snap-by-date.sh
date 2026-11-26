@@ -50,9 +50,9 @@ elif [[ "$#" -eq 2 ]]; then
     log "INFO" "Manual mode on"
   fi
 else
-  log "INFO" "Date is not defined. Using current date: $DATE"
-  log "INFO" "Usage: $0 <date> [manual]"
-  log "INFO" "Example: $0 ${DATE}"
+  echo "Date is not defined. Using current date: $DATE"
+  echo "Usage: $0 <date> [manual]"
+  echo "Example: $0 ${DATE}"
   exit 1
 fi
 
