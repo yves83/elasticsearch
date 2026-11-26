@@ -1,10 +1,14 @@
 **backup-es-snap-by-date.sh**
+Usage: ./backup-es-snap-by-date.sh <date> [manual]
+Example: ./backup-es-snap-by-date.sh 2026.11.26
+***
+
 
 **validate-snapshot-upload.sh**
 Validate the Snapshot upload to Azure Blob Storage. Ensure the Snapshots are upload to Azure Blob Storage. 
 Update this parameter before run the script:
   SNAPSHOT_DIR="/nfshare/frozen_snap"  
-  
+***  
   
 **download-archives-from-azure.sh**
 Usage: ./download-archives-from-azure.sh <command> [options]
@@ -20,7 +24,7 @@ Examples:
 Notes:
   - SAS token is read from: /opt/snap/AzArchive/.sas_token
   - Downloaded files are saved to: /nfshare/AzBackup
-
+***
   
 **restore-es-snapshot.sh**
 Usage: ./restore-es-snapshot.sh <archive-filename.tar.gz>
@@ -29,18 +33,18 @@ Example:
   ./restore-es-snapshot.sh es-snapshot-2026.09.08.tar.gz
 
 The archive will be extracted to: /nfshare/frozen_snap
-
+***
   
 **upload-archives-to-azure.sh**
 This script will upload the archive files to Azure Blob Storage.
 Usage: ./backup-es-snap-by-date.sh <date> [manual]
 Example: ./backup-es-snap-by-date.sh 2026.11.26
-
+***
   
 
 **runall.sh**
 Run all tasks in one script.
-
+***
   
 
 **list-es-snapshots.sh**
@@ -55,7 +59,7 @@ Examples:
   ./list-es-snapshots.sh dates
   ./list-es-snapshots.sh names 2026.09.09
   ./list-es-snapshots.sh files 2026.09.09
-
+***
   
 **azblob.ini**
 :: Example ::
@@ -65,11 +69,11 @@ DEST_PREFIX=esfs01
 OVERWRITE=false
 
 Update this storage account information in this file. **DEST_PREFIX** if you have multiple data source, you can use this prefix to identify source.
-
+***
   
 **.sas_token**
 This is a hidden file. You need to place the Azure Blob Storage SAS Token in this file.
-
+***
   
 **Installation**
 1. This script requires to **azcopy**. Please download and unzip the azcopy in this folder.
